@@ -1,0 +1,58 @@
+<?php
+declare(strict_types=1);
+
+use Magento\Framework\Escaper;
+
+/** @var Escaper $escaper */
+/** @var \Magento\Framework\View\Element\Template $block */
+
+$currentProductViewModel = $block->getData('view_model');
+?>
+
+<section class="py-8">
+    <div class="container mx-auto">
+        <h2 class="text-2xl font-semibold mb-6"><?= $escaper->escapeHtml(__('Recently Viewed')) ?></h2>
+        <div x-data="{
+            itemList: [],
+            maxItems: 5,
+
+            init() {
+                const storage = localStorage.getItem('recently_viewed');
+                if (storage) {
+                    this.itemList = JSON.parse(storage);
+                }
+
+                const currentProduct = <?php echo $escaper->escapeHtmlAttr(json_encode($currentProductViewModel->getProductData())); ?>;
+                if (currentProduct.id) {
+                    this.addProduct(currentProduct);
+                }
+            },
+
+            addProduct(newItem) {
+                // dedup by id, newest first
+                this.itemList = this.itemList.filter(item => (item.id !== newItem.id));
+                this.itemList.unshift(newItem);
+
+                // cap list length
+                if (this.itemList.length > this.maxItems) {
+                    this.itemList.pop();
+                }
+
+                localStorage.setItem('recently_viewed', JSON.stringify(this.itemList));
+            }
+        }">
+            <ol class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 list-none p-0 m-0">
+                <template x-for="item in itemList" :key="item.id">
+                    <li class="card card-interactive flex flex-col w-full">
+                        <a :href="item.url" class="block">
+                            <img x-bind:src="item.image" :alt="item.name" class="w-full object-cover" loading="lazy"/>
+                        </a>
+                        <div class="mt-2 mb-1 font-semibold text-lg text-center">
+                            <a :href="item.url" class="product-item-link" x-text="item.name"></a>
+                        </div>
+                    </li>
+                </template>
+            </ol>
+        </div>
+    </div>
+</section>
